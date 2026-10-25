@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import io
-from fastapi import FastAPI, File, UploadFile
-from PIL import Image
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from PIL import Image, UnidentifiedImageError
 from ultralytics import YOLO
 
 app = FastAPI()
@@ -31,6 +31,9 @@ def read_root():
 @app.post("/detect")
 async def detect(file: UploadFile = File()):
     contents = await file.read()
-    image =  Image.open(io.BytesIO(contents)).convert("RGB")
+    try:
+        image =  Image.open(io.BytesIO(contents)).convert("RGB")
+    except UnidentifiedImageError:
+        raise HTTPException(status_code=400, detail="The file entered is not an image.")   # write a clear message
     results = model(image)  
     return results_to_json(results[0])
